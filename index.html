@@ -1,14 +1,381 @@
 <!doctype html>
 <html>
     <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AR 互動體驗</title>
         <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
         <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
         <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
         <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
         <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                overflow: hidden;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
+
+            /* 導覽界面 */
+            #welcome-screen {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+                color: white;
+                text-align: center;
+                padding: 20px;
+                transition: opacity 0.5s ease;
+            }
+
+            #welcome-screen.hidden {
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            #welcome-screen h1 {
+                font-size: 3em;
+                margin-bottom: 20px;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            }
+
+            #welcome-screen p {
+                font-size: 1.2em;
+                margin-bottom: 30px;
+                max-width: 600px;
+                line-height: 1.6;
+            }
+
+            #welcome-screen .features {
+                display: flex;
+                gap: 30px;
+                margin: 40px 0;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            #welcome-screen .feature {
+                background: rgba(255,255,255,0.1);
+                padding: 20px;
+                border-radius: 10px;
+                backdrop-filter: blur(10px);
+                min-width: 200px;
+            }
+
+            #welcome-screen .feature-icon {
+                font-size: 2.5em;
+                margin-bottom: 10px;
+            }
+
+            .btn {
+                padding: 15px 40px;
+                font-size: 1.1em;
+                background: white;
+                color: #667eea;
+                border: none;
+                border-radius: 50px;
+                cursor: pointer;
+                font-weight: bold;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            }
+
+            .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            }
+
+            /* 控制面板 */
+            #control-panel {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 100;
+                display: none;
+            }
+
+            #control-panel.active {
+                display: block;
+            }
+
+            .panel-btn {
+                background: rgba(255,255,255,0.9);
+                border: none;
+                padding: 12px 20px;
+                margin: 5px;
+                border-radius: 25px;
+                cursor: pointer;
+                font-size: 0.9em;
+                font-weight: bold;
+                color: #333;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .panel-btn:hover {
+                background: white;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            }
+
+            .panel-btn.active {
+                background: #667eea;
+                color: white;
+            }
+
+            /* 選擇器面板 */
+            #selector-panel {
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: rgba(255,255,255,0.95);
+                border-radius: 15px;
+                padding: 20px;
+                max-width: 300px;
+                max-height: 70vh;
+                overflow-y: auto;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                display: none;
+                z-index: 99;
+            }
+
+            #selector-panel.active {
+                display: block;
+            }
+
+            #selector-panel h3 {
+                margin-bottom: 15px;
+                color: #333;
+                font-size: 1.2em;
+            }
+
+            .selector-group {
+                margin-bottom: 20px;
+            }
+
+            .selector-group label {
+                display: block;
+                margin-bottom: 8px;
+                color: #666;
+                font-weight: bold;
+                font-size: 0.9em;
+            }
+
+            .selector-item {
+                background: #f5f5f5;
+                padding: 12px;
+                margin: 5px 0;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                border: 2px solid transparent;
+            }
+
+            .selector-item:hover {
+                background: #e8e8e8;
+                transform: translateX(5px);
+            }
+
+            .selector-item.selected {
+                background: #667eea;
+                color: white;
+                border-color: #764ba2;
+            }
+
+            /* 拍照按鈕 */
+            #camera-btn {
+                position: fixed;
+                bottom: 30px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 70px;
+                height: 70px;
+                border-radius: 50%;
+                background: white;
+                border: 5px solid #667eea;
+                cursor: pointer;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                z-index: 100;
+                transition: all 0.3s ease;
+            }
+
+            #camera-btn.active {
+                display: flex;
+            }
+
+            #camera-btn:hover {
+                transform: translateX(-50%) scale(1.1);
+            }
+
+            #camera-btn::before {
+                content: '📷';
+                font-size: 2em;
+            }
+
+            /* 拍照預覽 */
+            #photo-preview {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.9);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                z-index: 200;
+                flex-direction: column;
+            }
+
+            #photo-preview.active {
+                display: flex;
+            }
+
+            #photo-preview img {
+                max-width: 90%;
+                max-height: 80%;
+                border-radius: 10px;
+                box-shadow: 0 4px 30px rgba(255,255,255,0.3);
+            }
+
+            #photo-preview .preview-controls {
+                margin-top: 20px;
+                display: flex;
+                gap: 15px;
+            }
+
+            .preview-btn {
+                padding: 12px 30px;
+                border: none;
+                border-radius: 25px;
+                cursor: pointer;
+                font-size: 1em;
+                font-weight: bold;
+                transition: all 0.3s ease;
+            }
+
+            .preview-btn.save {
+                background: #4CAF50;
+                color: white;
+            }
+
+            .preview-btn.close {
+                background: #f44336;
+                color: white;
+            }
+
+            .preview-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            }
+
+            /* 隱藏AR場景直到導覽結束 */
+            #scene {
+                display: none;
+            }
+
+            #scene.active {
+                display: block;
+            }
+        </style>
     </head>
 
-    <body style="margin: 0; overflow: hidden;">
+    <body>
+        <!-- 導覽歡迎界面 -->
+        <div id="welcome-screen">
+            <h1>🎯 AR 互動體驗</h1>
+            <p>歡迎來到擴增實境體驗平台！在這裡您可以選擇不同的3D物件和標記，並與它們互動拍照。</p>
+            
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">🎨</div>
+                    <h3>多樣3D物件</h3>
+                    <p>選擇您喜歡的3D模型</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📍</div>
+                    <h3>標記選擇</h3>
+                    <p>使用不同的AR標記</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📸</div>
+                    <h3>拍照功能</h3>
+                    <p>捕捉精彩互動瞬間</p>
+                </div>
+            </div>
+
+            <button class="btn" onclick="startAR()">開始體驗</button>
+        </div>
+
+        <!-- 控制面板 -->
+        <div id="control-panel">
+            <button class="panel-btn" id="selector-toggle" onclick="toggleSelector()">
+                <span>🎨</span> 選擇物件
+            </button>
+            <button class="panel-btn" id="camera-toggle" onclick="toggleCamera()">
+                <span>📸</span> 拍照模式
+            </button>
+        </div>
+
+        <!-- 選擇器面板 -->
+        <div id="selector-panel">
+            <h3>選擇設定</h3>
+            
+            <div class="selector-group">
+                <label>3D 物件</label>
+                <div class="selector-item selected" data-type="model" data-value="asset.glb" onclick="selectItem(this, 'model')">
+                    預設模型
+                </div>
+                <!-- 未來可以新增更多物件 -->
+                <div class="selector-item" data-type="model" data-value="placeholder.glb" onclick="selectItem(this, 'model')" style="opacity: 0.5;">
+                    物件 2 (即將推出)
+                </div>
+            </div>
+
+            <div class="selector-group">
+                <label>AR 標記</label>
+                <div class="selector-item selected" data-type="marker" data-value="marker.patt" onclick="selectItem(this, 'marker')">
+                    預設標記
+                </div>
+                <!-- 未來可以新增更多標記 -->
+                <div class="selector-item" data-type="marker" data-value="placeholder.patt" onclick="selectItem(this, 'marker')" style="opacity: 0.5;">
+                    標記 2 (即將推出)
+                </div>
+            </div>
+        </div>
+
+        <!-- 拍照按鈕 -->
+        <div id="camera-btn" onclick="takePhoto()"></div>
+
+        <!-- 拍照預覽 -->
+        <div id="photo-preview">
+            <img id="captured-photo" src="" alt="拍攝的照片">
+            <div class="preview-controls">
+                <button class="preview-btn save" onclick="savePhoto()">儲存照片</button>
+                <button class="preview-btn close" onclick="closePreview()">關閉</button>
+            </div>
+        </div>
+
+        <!-- AR 場景 -->
         <a-scene
             vr-mode-ui="enabled: false;"
             loading-screen="enabled: false;"
@@ -33,7 +400,6 @@
                 raycaster="objects: .clickable"
                 emitevents="true"
                 cursor="fuse: false; rayOrigin: mouse;"
-                id="markerA"
             >
                 <a-entity
                     id="bowser-model"
@@ -47,5 +413,163 @@
 
             <a-entity camera></a-entity>
         </a-scene>
+
+        <script>
+            let currentModel = 'asset.glb';
+            let currentMarker = 'marker.patt';
+            let cameraMode = false;
+            let capturedPhoto = null;
+
+            // 開始AR體驗
+            function startAR() {
+                const welcomeScreen = document.getElementById('welcome-screen');
+                const scene = document.getElementById('scene');
+                const controlPanel = document.getElementById('control-panel');
+                
+                welcomeScreen.classList.add('hidden');
+                setTimeout(() => {
+                    welcomeScreen.style.display = 'none';
+                    scene.classList.add('active');
+                    controlPanel.classList.add('active');
+                }, 500);
+            }
+
+            // 切換選擇器面板
+            function toggleSelector() {
+                const panel = document.getElementById('selector-panel');
+                const btn = document.getElementById('selector-toggle');
+                
+                if (panel.classList.contains('active')) {
+                    panel.classList.remove('active');
+                    btn.classList.remove('active');
+                } else {
+                    panel.classList.add('active');
+                    btn.classList.add('active');
+                }
+            }
+
+            // 切換拍照模式
+            function toggleCamera() {
+                cameraMode = !cameraMode;
+                const cameraBtn = document.getElementById('camera-btn');
+                const toggleBtn = document.getElementById('camera-toggle');
+                
+                if (cameraMode) {
+                    cameraBtn.classList.add('active');
+                    toggleBtn.classList.add('active');
+                } else {
+                    cameraBtn.classList.remove('active');
+                    toggleBtn.classList.remove('active');
+                }
+            }
+
+            // 選擇物件或標記
+            function selectItem(element, type) {
+                // 移除同類型項目的選中狀態
+                const items = document.querySelectorAll(`.selector-item[data-type="${type}"]`);
+                items.forEach(item => item.classList.remove('selected'));
+                
+                // 選中當前項目
+                element.classList.add('selected');
+                
+                const value = element.getAttribute('data-value');
+                
+                if (type === 'model') {
+                    currentModel = value;
+                    updateModel(value);
+                } else if (type === 'marker') {
+                    currentMarker = value;
+                    updateMarker(value);
+                }
+            }
+
+            // 更新3D模型
+            function updateModel(modelPath) {
+                const modelEntity = document.getElementById('bowser-model');
+                if (modelPath === 'asset.glb') {
+                    // 更新現有模型
+                    modelEntity.setAttribute('gltf-model', '#animated-asset');
+                } else {
+                    // 未來可以動態載入新模型
+                    console.log('載入新模型:', modelPath);
+                    // 這裡可以添加動態載入邏輯
+                }
+            }
+
+            // 更新標記
+            function updateMarker(markerPath) {
+                const marker = document.getElementById('animated-marker');
+                if (markerPath === 'marker.patt') {
+                    marker.setAttribute('url', 'assets/marker.patt');
+                } else {
+                    // 未來可以動態載入新標記
+                    console.log('載入新標記:', markerPath);
+                    // 這裡可以添加動態載入邏輯
+                }
+            }
+
+            // 拍照功能
+            function takePhoto() {
+                const scene = document.getElementById('scene');
+                const canvas = scene.canvas;
+                
+                // 創建臨時canvas來捕獲畫面
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const ctx = tempCanvas.getContext('2d');
+                
+                // 繪製AR場景到canvas
+                ctx.drawImage(canvas, 0, 0);
+                
+                // 轉換為圖片
+                tempCanvas.toBlob((blob) => {
+                    const url = URL.createObjectURL(blob);
+                    capturedPhoto = url;
+                    
+                    // 顯示預覽
+                    const preview = document.getElementById('photo-preview');
+                    const img = document.getElementById('captured-photo');
+                    img.src = url;
+                    preview.classList.add('active');
+                }, 'image/png');
+            }
+
+            // 儲存照片
+            function savePhoto() {
+                if (!capturedPhoto) return;
+                
+                const link = document.createElement('a');
+                link.download = `AR_Photo_${new Date().getTime()}.png`;
+                link.href = capturedPhoto;
+                link.click();
+                
+                closePreview();
+            }
+
+            // 關閉預覽
+            function closePreview() {
+                const preview = document.getElementById('photo-preview');
+                preview.classList.remove('active');
+                
+                if (capturedPhoto) {
+                    URL.revokeObjectURL(capturedPhoto);
+                    capturedPhoto = null;
+                }
+            }
+
+            // 點擊外部關閉選擇器
+            document.addEventListener('click', (e) => {
+                const selectorPanel = document.getElementById('selector-panel');
+                const selectorToggle = document.getElementById('selector-toggle');
+                
+                if (selectorPanel.classList.contains('active') && 
+                    !selectorPanel.contains(e.target) && 
+                    !selectorToggle.contains(e.target)) {
+                    selectorPanel.classList.remove('active');
+                    selectorToggle.classList.remove('active');
+                }
+            });
+        </script>
     </body>
 </html>
