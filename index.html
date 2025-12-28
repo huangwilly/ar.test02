@@ -2,7 +2,9 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <title>AR 互動體驗</title>
         <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
         <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -19,10 +21,12 @@
             body {
                 margin: 0;
                 overflow: hidden;
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
             }
 
-            /* 導覽界面 */
+            /* 導覽界面 - 手機優化 */
             #welcome-screen {
                 position: fixed;
                 top: 0;
@@ -39,6 +43,8 @@
                 text-align: center;
                 padding: 20px;
                 transition: opacity 0.5s ease;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
             #welcome-screen.hidden {
@@ -47,41 +53,54 @@
             }
 
             #welcome-screen h1 {
-                font-size: 3em;
-                margin-bottom: 20px;
+                font-size: 2em;
+                margin-bottom: 15px;
                 text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
             }
 
             #welcome-screen p {
-                font-size: 1.2em;
-                margin-bottom: 30px;
-                max-width: 600px;
+                font-size: 1em;
+                margin-bottom: 25px;
+                max-width: 100%;
                 line-height: 1.6;
+                padding: 0 10px;
             }
 
             #welcome-screen .features {
                 display: flex;
-                gap: 30px;
-                margin: 40px 0;
-                flex-wrap: wrap;
-                justify-content: center;
+                flex-direction: column;
+                gap: 15px;
+                margin: 30px 0;
+                width: 100%;
+                max-width: 400px;
+                padding: 0 10px;
             }
 
             #welcome-screen .feature {
-                background: rgba(255,255,255,0.1);
+                background: rgba(255,255,255,0.15);
                 padding: 20px;
-                border-radius: 10px;
+                border-radius: 15px;
                 backdrop-filter: blur(10px);
-                min-width: 200px;
+                width: 100%;
+            }
+
+            #welcome-screen .feature h3 {
+                font-size: 1.1em;
+                margin-bottom: 8px;
+            }
+
+            #welcome-screen .feature p {
+                font-size: 0.9em;
+                margin: 0;
             }
 
             #welcome-screen .feature-icon {
-                font-size: 2.5em;
+                font-size: 2em;
                 margin-bottom: 10px;
             }
 
             .btn {
-                padding: 15px 40px;
+                padding: 18px 50px;
                 font-size: 1.1em;
                 background: white;
                 color: #667eea;
@@ -89,49 +108,75 @@
                 border-radius: 50px;
                 cursor: pointer;
                 font-weight: bold;
-                transition: all 0.3s ease;
+                transition: all 0.2s ease;
                 box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                min-height: 50px;
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
             }
 
-            .btn:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            .btn:active {
+                transform: scale(0.95);
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
             }
 
-            /* 控制面板 */
+            /* 控制面板 - 手機底部 */
             #control-panel {
                 position: fixed;
-                top: 20px;
-                right: 20px;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
                 z-index: 100;
                 display: none;
+                flex-direction: row;
+                gap: 10px;
+                width: calc(100% - 40px);
+                max-width: 400px;
+                justify-content: center;
             }
 
             #control-panel.active {
-                display: block;
+                display: flex;
             }
 
             .panel-btn {
-                background: rgba(255,255,255,0.9);
+                background: rgba(255,255,255,0.95);
                 border: none;
-                padding: 12px 20px;
-                margin: 5px;
-                border-radius: 25px;
+                padding: 15px;
+                border-radius: 30px;
                 cursor: pointer;
-                font-size: 0.9em;
+                font-size: 1em;
                 font-weight: bold;
                 color: #333;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                transition: all 0.2s ease;
                 display: flex;
                 align-items: center;
+                justify-content: center;
                 gap: 8px;
+                min-height: 50px;
+                min-width: 50px;
+                flex: 1;
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
             }
 
-            .panel-btn:hover {
+            .panel-btn .btn-text {
+                display: none;
+            }
+
+            @media (min-width: 400px) {
+                .panel-btn {
+                    padding: 15px 25px;
+                }
+                .panel-btn .btn-text {
+                    display: inline;
+                }
+            }
+
+            .panel-btn:active {
+                transform: scale(0.95);
                 background: white;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             }
 
             .panel-btn.active {
@@ -139,57 +184,78 @@
                 color: white;
             }
 
-            /* 選擇器面板 */
+            /* 選擇器面板 - 手機全屏底部抽屜 */
             #selector-panel {
                 position: fixed;
-                top: 80px;
-                right: 20px;
-                background: rgba(255,255,255,0.95);
-                border-radius: 15px;
-                padding: 20px;
-                max-width: 300px;
-                max-height: 70vh;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: white;
+                border-radius: 20px 20px 0 0;
+                padding: 25px 20px;
+                max-height: 80vh;
                 overflow-y: auto;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
                 display: none;
                 z-index: 99;
+                -webkit-overflow-scrolling: touch;
+                transform: translateY(100%);
+                transition: transform 0.3s ease;
             }
 
             #selector-panel.active {
                 display: block;
+                transform: translateY(0);
+            }
+
+            #selector-panel::before {
+                content: '';
+                display: block;
+                width: 40px;
+                height: 4px;
+                background: #ddd;
+                border-radius: 2px;
+                margin: 0 auto 20px;
             }
 
             #selector-panel h3 {
-                margin-bottom: 15px;
+                margin-bottom: 20px;
                 color: #333;
-                font-size: 1.2em;
+                font-size: 1.3em;
+                text-align: center;
             }
 
             .selector-group {
-                margin-bottom: 20px;
+                margin-bottom: 25px;
             }
 
             .selector-group label {
                 display: block;
-                margin-bottom: 8px;
+                margin-bottom: 12px;
                 color: #666;
                 font-weight: bold;
-                font-size: 0.9em;
+                font-size: 1em;
             }
 
             .selector-item {
                 background: #f5f5f5;
-                padding: 12px;
-                margin: 5px 0;
-                border-radius: 8px;
+                padding: 18px;
+                margin: 8px 0;
+                border-radius: 12px;
                 cursor: pointer;
-                transition: all 0.3s ease;
+                transition: all 0.2s ease;
                 border: 2px solid transparent;
+                font-size: 1em;
+                min-height: 50px;
+                display: flex;
+                align-items: center;
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
             }
 
-            .selector-item:hover {
+            .selector-item:active {
+                transform: scale(0.98);
                 background: #e8e8e8;
-                transform: translateX(5px);
             }
 
             .selector-item.selected {
@@ -198,52 +264,55 @@
                 border-color: #764ba2;
             }
 
-            /* 拍照按鈕 */
+            /* 拍照按鈕 - 手機優化 */
             #camera-btn {
                 position: fixed;
-                bottom: 30px;
+                bottom: 100px;
                 left: 50%;
                 transform: translateX(-50%);
-                width: 70px;
-                height: 70px;
+                width: 80px;
+                height: 80px;
                 border-radius: 50%;
                 background: white;
-                border: 5px solid #667eea;
+                border: 6px solid #667eea;
                 cursor: pointer;
                 display: none;
                 align-items: center;
                 justify-content: center;
                 box-shadow: 0 4px 20px rgba(0,0,0,0.3);
                 z-index: 100;
-                transition: all 0.3s ease;
+                transition: all 0.2s ease;
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
             }
 
             #camera-btn.active {
                 display: flex;
             }
 
-            #camera-btn:hover {
-                transform: translateX(-50%) scale(1.1);
+            #camera-btn:active {
+                transform: translateX(-50%) scale(0.9);
             }
 
             #camera-btn::before {
                 content: '📷';
-                font-size: 2em;
+                font-size: 2.5em;
             }
 
-            /* 拍照預覽 */
+            /* 拍照預覽 - 手機優化 */
             #photo-preview {
                 position: fixed;
                 top: 0;
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0,0,0,0.9);
+                background: rgba(0,0,0,0.95);
                 display: none;
                 align-items: center;
                 justify-content: center;
                 z-index: 200;
                 flex-direction: column;
+                padding: 20px;
             }
 
             #photo-preview.active {
@@ -251,26 +320,33 @@
             }
 
             #photo-preview img {
-                max-width: 90%;
-                max-height: 80%;
+                max-width: 100%;
+                max-height: 70vh;
                 border-radius: 10px;
                 box-shadow: 0 4px 30px rgba(255,255,255,0.3);
             }
 
             #photo-preview .preview-controls {
-                margin-top: 20px;
+                margin-top: 30px;
                 display: flex;
                 gap: 15px;
+                width: 100%;
+                max-width: 400px;
+                justify-content: center;
             }
 
             .preview-btn {
-                padding: 12px 30px;
+                padding: 16px 35px;
                 border: none;
-                border-radius: 25px;
+                border-radius: 30px;
                 cursor: pointer;
-                font-size: 1em;
+                font-size: 1.1em;
                 font-weight: bold;
-                transition: all 0.3s ease;
+                transition: all 0.2s ease;
+                min-height: 50px;
+                flex: 1;
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
             }
 
             .preview-btn.save {
@@ -283,9 +359,8 @@
                 color: white;
             }
 
-            .preview-btn:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            .preview-btn:active {
+                transform: scale(0.95);
             }
 
             /* 隱藏AR場景直到導覽結束 */
@@ -295,6 +370,72 @@
 
             #scene.active {
                 display: block;
+            }
+
+            /* 平板和桌面適配 */
+            @media (min-width: 768px) {
+                #welcome-screen h1 {
+                    font-size: 3em;
+                }
+
+                #welcome-screen p {
+                    font-size: 1.2em;
+                }
+
+                #welcome-screen .features {
+                    flex-direction: row;
+                    max-width: 800px;
+                }
+
+                #welcome-screen .feature {
+                    min-width: 200px;
+                }
+
+                #control-panel {
+                    top: 20px;
+                    right: 20px;
+                    left: auto;
+                    transform: none;
+                    flex-direction: column;
+                    width: auto;
+                    max-width: none;
+                }
+
+                #selector-panel {
+                    top: 80px;
+                    right: 20px;
+                    left: auto;
+                    bottom: auto;
+                    max-width: 350px;
+                    max-height: 70vh;
+                    border-radius: 15px;
+                    transform: none;
+                }
+
+                #selector-panel::before {
+                    display: none;
+                }
+
+                #camera-btn {
+                    bottom: 30px;
+                    width: 70px;
+                    height: 70px;
+                }
+            }
+
+            /* 防止iOS Safari底部安全區域遮擋 */
+            @supports (padding: max(0px)) {
+                #control-panel {
+                    bottom: max(20px, env(safe-area-inset-bottom));
+                }
+
+                #camera-btn {
+                    bottom: max(100px, calc(env(safe-area-inset-bottom) + 100px));
+                }
+
+                #selector-panel {
+                    padding-bottom: max(25px, env(safe-area-inset-bottom));
+                }
             }
         </style>
     </head>
@@ -329,10 +470,10 @@
         <!-- 控制面板 -->
         <div id="control-panel">
             <button class="panel-btn" id="selector-toggle" onclick="toggleSelector()">
-                <span>🎨</span> 選擇物件
+                <span>🎨</span> <span class="btn-text">選擇物件</span>
             </button>
             <button class="panel-btn" id="camera-toggle" onclick="toggleCamera()">
-                <span>📸</span> 拍照模式
+                <span>📸</span> <span class="btn-text">拍照</span>
             </button>
         </div>
 
@@ -570,6 +711,24 @@
                     selectorToggle.classList.remove('active');
                 }
             });
+
+            // 手機端優化：防止選擇器面板背景滾動
+            let selectorPanel = document.getElementById('selector-panel');
+            selectorPanel.addEventListener('touchmove', (e) => {
+                if (e.target === selectorPanel || selectorPanel.contains(e.target)) {
+                    e.stopPropagation();
+                }
+            }, { passive: false });
+
+            // 防止雙擊縮放
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', (e) => {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    e.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
         </script>
     </body>
 </html>
