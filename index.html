@@ -16,18 +16,40 @@
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { margin: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; background: #000; }
 
+            /* 1. 第一層：歡迎頁面 */
             #welcome-screen {
                 position: fixed; top: 0; left: 0; width: 100%; height: 100%;
                 background: linear-gradient(180deg, #1a1a1a 0%, #000000 100%);
                 display: flex; flex-direction: column; justify-content: center; align-items: center;
                 z-index: 1000; color: white; text-align: center; padding: 40px 30px;
-                transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+                transition: opacity 0.5s ease, transform 0.5s ease;
             }
 
             #welcome-screen.hidden {
                 opacity: 0;
-                transform: scale(1.1); /* 往用戶臉上飛過去的感覺 */
+                transform: scale(1.1);
                 pointer-events: none;
+            }
+
+            /* 2. 第二層：三個按鈕的選單介面 */
+            #menu-screen {
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.8);
+                display: none; /* 預設隱藏 */
+                flex-direction: column; justify-content: flex-end; align-items: center;
+                z-index: 900; padding-bottom: 50px; transition: all 0.5s ease;
+            }
+
+            #menu-screen.active {
+                display: flex;
+            }
+
+            .btn-group { 
+                display: flex; 
+                flex-direction: column; 
+                gap: 15px; 
+                width: 80%; 
+                max-width: 400px;
             }
 
             /* --- 關鍵修正：AR 場景樣式 --- */
@@ -56,13 +78,12 @@
             #control-panel { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; display: none; padding: 20px; backdrop-filter: blur(20px); background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 70%, transparent 100%); padding-bottom: max(20px, env(safe-area-inset-bottom)); }
             #control-panel.active { display: block; }
             
-            #ar-back-button { position: fixed; top: max(env(safe-area-inset-top), 20px); right: 20px; width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, 0.15); display: none; align-items: center; justify-content: center; z-index: 150; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(20px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+            #ar-back-button { position: fixed; top: max(env(safe-area-inset-top), 20px); right: 20px; width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, 0.15); display: none; align-items: center; justify-content: center; z-index: 1500; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(20px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); color: white; font-size: 1.5rem; }
             #ar-back-button.active { display: flex; }
             #ar-back-button:hover { background: rgba(255, 255, 255, 0.25); transform: scale(1.05); }
             #ar-back-button:active { transform: scale(0.95); }
-            #ar-back-button::before { content: '⌂'; font-size: 1.4rem; color: white; }
             
-            #camera-btn { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%); width: 72px; height: 72px; border-radius: 50%; background: white; display: none; z-index: 101; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 8px 32px rgba(0,0,0,0.4); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+            #camera-btn { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%); width: 72px; height: 72px; border-radius: 50%; background: white; display: none; z-index: 1500; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 8px 32px rgba(0,0,0,0.4); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
             #camera-btn.active { display: flex; }
             #camera-btn:active { transform: translateX(-50%) scale(0.85); }
             #camera-btn::before { content: '📷'; font-size: 2rem; }
@@ -181,15 +202,26 @@
     </head>
 
     <body>
+        <!-- 1. 第一層：歡迎頁面 -->
         <div id="welcome-screen">
             <div class="content-wrapper">
                 <h1>AR 互動體驗</h1>
                 <p style="margin-bottom: 50px; color: rgba(255,255,255,0.7);">探索擴增實境的無限可能</p>
-                <button class="btn" onclick="startAR()"><span>開始體驗</span></button>
+                <button class="btn" onclick="goToMenu()"><span>開始體驗</span></button>
             </div>
         </div>
 
-        <div id="ar-back-button" onclick="backToHomeFromAR()"></div>
+        <!-- 2. 第二層：選單介面 -->
+        <div id="menu-screen">
+            <div class="btn-group">
+                <button class="btn" onclick="enterAR('type1')">介紹按鈕 1</button>
+                <button class="btn" onclick="enterAR('type2')">介紹按鈕 2</button>
+                <button class="btn" onclick="enterAR('type3')">介紹按鈕 3</button>
+                <button class="btn" style="background: transparent;" onclick="backToWelcome()">返回主頁</button>
+            </div>
+        </div>
+
+        <div id="ar-back-button" onclick="backToMenuFromAR()">✕</div>
 
         <div id="control-panel">
             <button class="btn" style="width: 100%;" onclick="toggleCamera()">📸 拍照模式</button>
@@ -248,52 +280,66 @@
             let cameraMode = false;
             let capturedPhoto = null;
             let isCapturing = false;
+            let currentARType = null;
 
-            function startAR() {
-                const welcome = document.getElementById('welcome-screen');
-                const container = document.getElementById('scene-container');
-                const controls = document.getElementById('control-panel');
-                const backBtn = document.getElementById('ar-back-button');
+            const welcome = document.getElementById('welcome-screen');
+            const menu = document.getElementById('menu-screen');
+            const sceneContainer = document.getElementById('scene-container');
+            const backBtn = document.getElementById('ar-back-button');
+            const cameraBtn = document.getElementById('camera-btn');
+            const controls = document.getElementById('control-panel');
 
-                // 1. 隱藏歡迎頁面
+            // 從歡迎頁進入選單
+            function goToMenu() {
                 welcome.classList.add('hidden');
-                
-                // 2. 顯示 AR 容器
-                container.classList.add('active');
-
-                // 確保 A-Frame 知道視窗大小可能改變了 (針對一些手機瀏覽器隱藏網址列時)
-                const scene = document.querySelector('a-scene');
-                if (scene) scene.resize();
-
-                // 3. 延遲顯示 UI
                 setTimeout(() => {
                     welcome.style.display = 'none';
-                    controls.classList.add('active');
-                    backBtn.classList.add('active');
-                }, 800);
+                    menu.classList.add('active');
+                }, 500);
             }
 
-            function backToHomeFromAR() {
-                const welcome = document.getElementById('welcome-screen');
-                const container = document.getElementById('scene-container');
-                const controls = document.getElementById('control-panel');
-                const backBtn = document.getElementById('ar-back-button');
-                const cameraBtn = document.getElementById('camera-btn');
+            // 從選單返回歡迎頁
+            function backToWelcome() {
+                menu.classList.remove('active');
+                welcome.style.display = 'flex';
+                setTimeout(() => {
+                    welcome.classList.remove('hidden');
+                }, 10);
+            }
 
-                // 1. 關閉所有 AR 相關 UI
-                controls.classList.remove('active');
+            // 從選單點擊按鈕後「進入 AR」
+            function enterAR(type) {
+                console.log("正在加載類型:", type);
+                currentARType = type;
+                menu.classList.remove('active');
+                
+                // 顯示 AR 容器 (使用 visibility)
+                sceneContainer.classList.add('active');
+                
+                // 確保 A-Frame 知道視窗大小可能改變了
+                const scene = document.querySelector('a-scene');
+                if (scene) scene.resize();
+                
+                // 顯示 AR 專屬 UI
+                setTimeout(() => {
+                    backBtn.classList.add('active');
+                    controls.classList.add('active');
+                }, 300);
+            }
+
+            // 關鍵修正：從 AR 返回「選單頁面」
+            function backToMenuFromAR() {
+                // 1. 隱藏 AR UI
                 backBtn.classList.remove('active');
+                controls.classList.remove('active');
                 cameraBtn.classList.remove('active');
                 cameraMode = false;
-
-                // 2. 隱藏 AR 容器（不使用 display:none，改用 visibility）
-                container.classList.remove('active');
-
-                // 3. 重新顯示歡迎頁
-                welcome.style.display = 'flex';
-                // 強制瀏覽器重繪，確保動畫能跑
-                welcome.offsetHeight; 
-                welcome.classList.remove('hidden');
+                
+                // 2. 隱藏 AR 場景 (但不殺死它)
+                sceneContainer.classList.remove('active');
+                
+                // 3. 顯示選單頁面
+                menu.classList.add('active');
             }
 
             function toggleCamera() {
