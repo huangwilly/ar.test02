@@ -587,7 +587,7 @@
                 }
             }
 
-            /* AR場景始終在背景運行，只是被歡迎界面覆蓋 */
+            /* AR場景初始時完全隱藏，不啟動相機 */
             #scene {
                 position: fixed;
                 top: 0;
@@ -595,9 +595,13 @@
                 width: 100%;
                 height: 100%;
                 z-index: 1;
+                display: none;
+                visibility: hidden;
             }
 
             #scene.active {
+                display: block;
+                visibility: visible;
                 z-index: 1;
             }
 
@@ -839,15 +843,15 @@
             </div>
         </div>
 
-        <!-- AR 場景 -->
+        <!-- AR 場景 - 初始時不啟動相機 -->
         <a-scene
             vr-mode-ui="enabled: false;"
             loading-screen="enabled: false;"
             renderer="logarithmicDepthBuffer: true; preserveDrawingBuffer: true;"
-            arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
             id="scene"
             embedded
             gesture-detector
+            style="display: none;"
         >
             <a-assets>
                 <a-asset-item
@@ -927,55 +931,19 @@
                 '#random-img-5'
             ];
 
-            // 確保AR場景在頁面加載時初始化
+            // 確保AR場景在頁面加載時不啟動相機
             window.addEventListener('DOMContentLoaded', () => {
                 const scene = document.getElementById('scene');
                 if (scene) {
-                    // AR場景已經在DOM中，AR.js會自動初始化
-                    // 但我們需要確保場景可以正常運行，即使被隱藏
-                    console.log('AR場景已準備就緒');
+                    // 初始時場景完全隱藏，不啟動相機
+                    scene.style.display = 'none';
+                    scene.pause();
+                    console.log('AR場景已準備，等待用戶啟動');
                     
                     // 設置隨機圖片觸發機制
                     setupRandomImageTrigger();
-                    
-                    // 在歡迎界面停留時，限制 AR 渲染幀率以節省電力
-                    optimizeARPerformance();
                 }
             });
-
-            // 優化 AR 性能：在歡迎界面時限制渲染
-            function optimizeARPerformance() {
-                const scene = document.getElementById('scene');
-                const welcomeScreen = document.getElementById('welcome-screen');
-                
-                if (!scene || !welcomeScreen) return;
-                
-                // 使用 MutationObserver 監聽歡迎界面的顯示狀態
-                const observer = new MutationObserver(() => {
-                    if (welcomeScreen.style.display === 'none' || welcomeScreen.classList.contains('hidden')) {
-                        // 歡迎界面隱藏時，恢復正常渲染
-                        if (scene.is('paused')) {
-                            scene.play();
-                        }
-                    } else {
-                        // 歡迎界面顯示時，暫停 AR 渲染以節省電力
-                        if (!scene.is('paused')) {
-                            scene.pause();
-                        }
-                    }
-                });
-                
-                // 觀察歡迎界面的樣式變化
-                observer.observe(welcomeScreen, {
-                    attributes: true,
-                    attributeFilter: ['style', 'class']
-                });
-                
-                // 初始狀態：如果歡迎界面顯示，則暫停場景
-                if (welcomeScreen.style.display !== 'none' && !welcomeScreen.classList.contains('hidden')) {
-                    scene.pause();
-                }
-            }
 
             // 設置隨機圖片觸發機制
             function setupRandomImageTrigger() {
@@ -1025,13 +993,32 @@
             function hideDetail() {
                 const detailView = document.getElementById('detail-view');
                 const welcomeScreen = document.getElementById('welcome-screen');
+                const scene = document.getElementById('scene');
                 
                 detailView.classList.remove('active');
+                
+                // 確保AR場景保持隱藏和暫停狀態（不啟動相機）
+                if (scene) {
+                    // 隱藏場景
+                    scene.style.display = 'none';
+                    scene.classList.remove('active');
+                    
+                    // 暫停場景渲染
+                    if (!scene.is('paused')) {
+                        scene.pause();
+                    }
+                    
+                    // 確保沒有arjs屬性（不啟動相機）
+                    if (scene.hasAttribute('arjs')) {
+                        scene.removeAttribute('arjs');
+                    }
+                }
                 
                 // 延遲後顯示歡迎頁，確保動畫流暢
                 setTimeout(() => {
                     detailView.style.display = 'none';
                     welcomeScreen.style.display = 'flex';
+                    welcomeScreen.classList.remove('hidden');
                 }, 600);
             }
 
@@ -1042,17 +1029,30 @@
                 const scene = document.getElementById('scene');
                 const arBackButton = document.getElementById('ar-back-button');
                 
-                // 恢復 AR 渲染（如果之前被暫停）
-                if (scene && scene.is('paused')) {
-                    scene.play();
-                }
-                
                 // 添加淡出動畫
                 welcomeScreen.classList.add('hidden');
                 
-                // 延遲隱藏歡迎界面並顯示控制面板
+                // 延遲隱藏歡迎界面並啟動AR
                 setTimeout(() => {
                     welcomeScreen.style.display = 'none';
+                    
+                    // 啟動AR場景和相機
+                    if (scene) {
+                        // 顯示場景
+                        scene.style.display = 'block';
+                        scene.classList.add('active');
+                        
+                        // 動態添加arjs屬性來啟動相機
+                        scene.setAttribute('arjs', 'trackingMethod: best; sourceType: webcam; debugUIEnabled: false;');
+                        
+                        // 等待AR.js初始化後再恢復場景
+                        setTimeout(() => {
+                            // 恢復場景渲染
+                            if (scene.is('paused')) {
+                                scene.play();
+                            }
+                        }, 200);
+                    }
                     
                     // 短暫延遲後顯示控制面板，創造層次感
                     setTimeout(() => {
@@ -1082,15 +1082,25 @@
                 if (controlPanel) controlPanel.classList.remove('active');
                 if (arBackButton) arBackButton.classList.remove('active');
 
+                // 停止AR場景和相機
+                if (scene) {
+                    // 移除arjs屬性來停止相機
+                    scene.removeAttribute('arjs');
+                    
+                    // 隱藏場景
+                    scene.style.display = 'none';
+                    scene.classList.remove('active');
+                    
+                    // 暫停場景渲染
+                    if (!scene.is('paused')) {
+                        scene.pause();
+                    }
+                }
+
                 // 顯示主歡迎頁
                 if (welcomeScreen) {
                     welcomeScreen.classList.remove('hidden');
                     welcomeScreen.style.display = 'flex';
-                }
-
-                // 交由性能優化邏輯暫停 AR 渲染（當歡迎頁顯示時）
-                if (scene && !scene.is('paused')) {
-                    scene.pause();
                 }
             }
 
