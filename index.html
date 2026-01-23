@@ -1,0 +1,1225 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <title>AR 互動體驗</title>
+        <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+        <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+        <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
+        <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
+        <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                overflow: hidden;
+                font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+                background: #000;
+            }
+
+            /* Apple风格欢迎界面 */
+            #welcome-screen {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(180deg, #1a1a1a 0%, #000000 100%);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+                color: white;
+                text-align: center;
+                padding: 40px 30px;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            #welcome-screen.hidden {
+                opacity: 0;
+                transform: scale(0.95);
+                pointer-events: none;
+                transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            #welcome-screen .content-wrapper {
+                animation: fadeInUp 1s cubic-bezier(0.4, 0, 0.2, 1) 0.2s both;
+                max-width: 600px;
+                width: 100%;
+            }
+
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            #welcome-screen h1 {
+                font-size: clamp(2.5rem, 8vw, 4rem);
+                font-weight: 700;
+                margin-bottom: 20px;
+                letter-spacing: -0.02em;
+                background: linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,0.7) 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                animation: fadeInUp 1s cubic-bezier(0.4, 0, 0.2, 1) 0.3s both;
+            }
+
+            #welcome-screen .subtitle {
+                font-size: clamp(1rem, 3vw, 1.25rem);
+                margin-bottom: 50px;
+                color: rgba(255, 255, 255, 0.7);
+                line-height: 1.6;
+                font-weight: 400;
+                animation: fadeInUp 1s cubic-bezier(0.4, 0, 0.2, 1) 0.4s both;
+            }
+
+            #welcome-screen .features {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 20px;
+                margin: 60px 0;
+                animation: fadeInUp 1s cubic-bezier(0.4, 0, 0.2, 1) 0.5s both;
+            }
+
+            #welcome-screen .feature {
+                background: rgba(255, 255, 255, 0.05);
+                padding: 30px 20px;
+                border-radius: 20px;
+                backdrop-filter: blur(20px) saturate(180%);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            #welcome-screen .feature:hover {
+                background: rgba(255, 255, 255, 0.1);
+                transform: translateY(-5px);
+                border-color: rgba(255, 255, 255, 0.2);
+            }
+
+            #welcome-screen .feature h3 {
+                font-size: 1.1rem;
+                margin-bottom: 10px;
+                font-weight: 600;
+                color: rgba(255, 255, 255, 0.95);
+            }
+
+            #welcome-screen .feature p {
+                font-size: 0.875rem;
+                margin: 0;
+                color: rgba(255, 255, 255, 0.6);
+                line-height: 1.5;
+            }
+
+            #welcome-screen .feature-icon {
+                font-size: 2.5rem;
+                margin-bottom: 15px;
+                display: block;
+                filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+            }
+
+            .btn {
+                padding: 18px 60px;
+                font-size: 1.125rem;
+                background: rgba(255, 255, 255, 0.15);
+                color: white;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 50px;
+                cursor: pointer;
+                font-weight: 600;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                backdrop-filter: blur(20px) saturate(180%);
+                min-height: 56px;
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+                position: relative;
+                overflow: hidden;
+                animation: fadeInUp 1s cubic-bezier(0.4, 0, 0.2, 1) 0.6s both;
+            }
+
+            .btn::before {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 0;
+                height: 0;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.2);
+                transform: translate(-50%, -50%);
+                transition: width 0.6s, height 0.6s;
+            }
+
+            .btn:hover::before {
+                width: 300px;
+                height: 300px;
+            }
+
+            .btn:active {
+                transform: scale(0.97);
+                background: rgba(255, 255, 255, 0.25);
+            }
+
+            .btn span {
+                position: relative;
+                z-index: 1;
+            }
+
+            /* Apple风格控制面板 */
+            #control-panel {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                z-index: 100;
+                display: none;
+                padding: 20px;
+                padding-bottom: max(20px, env(safe-area-inset-bottom));
+                background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 70%, transparent 100%);
+                backdrop-filter: blur(20px) saturate(180%);
+                animation: slideUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+            }
+
+            @keyframes slideUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            #control-panel.active {
+                display: block;
+            }
+
+            .panel-btn {
+                background: rgba(255, 255, 255, 0.2);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                padding: 16px 32px;
+                border-radius: 50px;
+                cursor: pointer;
+                font-size: 1rem;
+                font-weight: 600;
+                color: white;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                min-height: 56px;
+                width: 100%;
+                max-width: 300px;
+                margin: 0 auto;
+                backdrop-filter: blur(10px);
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+            }
+
+            .panel-btn:hover {
+                background: rgba(255, 255, 255, 0.3);
+                transform: translateY(-2px);
+            }
+
+            .panel-btn:active {
+                transform: scale(0.97);
+                background: rgba(255, 255, 255, 0.25);
+            }
+
+            .panel-btn.active {
+                background: rgba(255, 255, 255, 0.9);
+                color: #000;
+                border-color: rgba(255, 255, 255, 0.5);
+            }
+
+            /* Apple风格拍照按钮 */
+            #camera-btn {
+                position: fixed;
+                bottom: 120px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 72px;
+                height: 72px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.95);
+                border: 4px solid rgba(255, 255, 255, 0.5);
+                cursor: pointer;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+                z-index: 101;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+                animation: pulse 2s infinite;
+            }
+
+            @keyframes pulse {
+                0%, 100% {
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 0 rgba(255,255,255,0.4);
+                }
+                50% {
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 10px rgba(255,255,255,0);
+                }
+            }
+
+            #camera-btn.active {
+                display: flex;
+                animation: fadeInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+            }
+
+            @keyframes fadeInScale {
+                from {
+                    opacity: 0;
+                    transform: translateX(-50%) scale(0.8);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(-50%) scale(1);
+                }
+            }
+
+            #camera-btn:active {
+                transform: translateX(-50%) scale(0.85);
+                background: rgba(255, 255, 255, 1);
+            }
+
+            #camera-btn::before {
+                content: '📷';
+                font-size: 2rem;
+            }
+
+            /* 拍照倒计时 */
+            #camera-countdown {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 8rem;
+                font-weight: 700;
+                color: white;
+                z-index: 200;
+                pointer-events: none;
+                display: none;
+                text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+                animation: countdownPop 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            @keyframes countdownPop {
+                0% {
+                    opacity: 0;
+                    transform: translate(-50%, -50%) scale(0.5);
+                }
+                50% {
+                    opacity: 1;
+                    transform: translate(-50%, -50%) scale(1.1);
+                }
+                100% {
+                    opacity: 0;
+                    transform: translate(-50%, -50%) scale(0.8);
+                }
+            }
+
+            #camera-countdown.active {
+                display: block;
+            }
+
+            /* 拍照闪光效果 */
+            #camera-flash {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: white;
+                z-index: 199;
+                opacity: 0;
+                pointer-events: none;
+                display: none;
+            }
+
+            #camera-flash.active {
+                display: block;
+                animation: flash 0.3s ease;
+            }
+
+            @keyframes flash {
+                0%, 100% {
+                    opacity: 0;
+                }
+                50% {
+                    opacity: 0.8;
+                }
+            }
+
+            /* Apple风格拍照预览 */
+            #photo-preview {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.98);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                z-index: 300;
+                flex-direction: column;
+                padding: 20px;
+                opacity: 0;
+                transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            #photo-preview.active {
+                display: flex;
+                opacity: 1;
+                animation: previewFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+            }
+
+            @keyframes previewFadeIn {
+                from {
+                    opacity: 0;
+                }
+                to {
+                    opacity: 1;
+                }
+            }
+
+            #photo-preview .preview-container {
+                position: relative;
+                width: 100%;
+                max-width: 500px;
+                animation: previewSlideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.1s both;
+            }
+
+            @keyframes previewSlideUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px) scale(0.95);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+
+            #photo-preview img {
+                width: 100%;
+                height: auto;
+                border-radius: 20px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+                background: #000;
+            }
+
+            #photo-preview .preview-controls {
+                margin-top: 40px;
+                display: flex;
+                gap: 15px;
+                width: 100%;
+                max-width: 500px;
+                justify-content: center;
+                animation: previewSlideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.2s both;
+            }
+
+            .preview-btn {
+                padding: 16px 40px;
+                border: none;
+                border-radius: 50px;
+                cursor: pointer;
+                font-size: 1rem;
+                font-weight: 600;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                min-height: 56px;
+                flex: 1;
+                max-width: 200px;
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+                backdrop-filter: blur(20px) saturate(180%);
+                position: relative;
+                overflow: hidden;
+            }
+
+            .preview-btn::before {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 0;
+                height: 0;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.2);
+                transform: translate(-50%, -50%);
+                transition: width 0.6s, height 0.6s;
+            }
+
+            .preview-btn:hover::before {
+                width: 300px;
+                height: 300px;
+            }
+
+            .preview-btn.save {
+                background: rgba(52, 199, 89, 0.2);
+                color: #34C759;
+                border: 1px solid rgba(52, 199, 89, 0.3);
+            }
+
+            .preview-btn.save:hover {
+                background: rgba(52, 199, 89, 0.3);
+                transform: translateY(-2px);
+            }
+
+            .preview-btn.close {
+                background: rgba(255, 59, 48, 0.2);
+                color: #FF3B30;
+                border: 1px solid rgba(255, 59, 48, 0.3);
+            }
+
+            .preview-btn.close:hover {
+                background: rgba(255, 59, 48, 0.3);
+                transform: translateY(-2px);
+            }
+
+            .preview-btn:active {
+                transform: scale(0.97);
+            }
+
+            .preview-btn span {
+                position: relative;
+                z-index: 1;
+            }
+
+            /* 保存成功提示 */
+            #save-toast {
+                position: fixed;
+                bottom: 100px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0, 0, 0, 0.8);
+                backdrop-filter: blur(20px) saturate(180%);
+                color: white;
+                padding: 16px 32px;
+                border-radius: 50px;
+                font-size: 1rem;
+                font-weight: 500;
+                z-index: 400;
+                opacity: 0;
+                pointer-events: none;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            #save-toast.active {
+                opacity: 1;
+                animation: toastSlideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+            }
+
+            @keyframes toastSlideUp {
+                from {
+                    opacity: 0;
+                    transform: translateX(-50%) translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(-50%) translateY(0);
+                }
+            }
+
+            /* AR場景始終在背景運行，只是被歡迎界面覆蓋 */
+            #scene {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 1;
+            }
+
+            #scene.active {
+                z-index: 1;
+            }
+
+
+            /* 響應式設計 */
+            @media (min-width: 768px) {
+                #welcome-screen .content-wrapper {
+                    max-width: 800px;
+                }
+
+                #welcome-screen .features {
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 30px;
+                }
+
+                #welcome-screen .feature {
+                    padding: 40px 30px;
+                }
+
+                #control-panel {
+                    background: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 30%, rgba(0,0,0,0.8) 50%, rgba(0,0,0,0.4) 70%, transparent 100%);
+                }
+
+                #camera-btn {
+                    bottom: 40px;
+                    width: 80px;
+                    height: 80px;
+                }
+
+                #camera-btn::before {
+                    font-size: 2.5rem;
+                }
+            }
+
+            /* 詳情頁樣式 */
+            #detail-view {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(180deg, #1a1a1a 0%, #000000 100%);
+                display: none;
+                flex-direction: column;
+                z-index: 999;
+                color: white;
+                padding: max(env(safe-area-inset-top), 20px) 20px max(env(safe-area-inset-bottom), 20px);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            #detail-view.active {
+                display: flex;
+                animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+            }
+
+            #detail-view .back-button {
+                position: fixed;
+                top: max(env(safe-area-inset-top), 20px);
+                right: 20px;
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.15);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                backdrop-filter: blur(20px) saturate(180%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                z-index: 1001;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+            }
+
+            #detail-view .back-button:hover {
+                background: rgba(255, 255, 255, 0.25);
+                transform: scale(1.1);
+            }
+
+            #detail-view .back-button:active {
+                transform: scale(0.95);
+            }
+
+            #detail-view .back-button::before {
+                content: '✕';
+                font-size: 1.5rem;
+                color: white;
+            }
+
+            #detail-view .detail-content {
+                max-width: 600px;
+                width: 100%;
+                margin: 60px auto 0;
+                animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.2s both;
+            }
+
+            #detail-view .detail-image {
+                width: 100%;
+                max-width: 400px;
+                height: 300px;
+                margin: 0 auto 30px;
+                border-radius: 20px;
+                object-fit: cover;
+                background: rgba(255, 255, 255, 0.05);
+                animation: imageScale 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.3s both;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            }
+
+            @keyframes imageScale {
+                from {
+                    opacity: 0;
+                    transform: scale(0.9);
+                }
+                to {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+            }
+
+            #detail-view .detail-title {
+                font-size: clamp(2rem, 6vw, 3rem);
+                font-weight: 700;
+                margin-bottom: 20px;
+                text-align: center;
+                letter-spacing: -0.02em;
+                animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.4s both;
+            }
+
+            #detail-view .detail-text {
+                font-size: clamp(1rem, 3vw, 1.125rem);
+                line-height: 1.8;
+                color: rgba(255, 255, 255, 0.8);
+                text-align: center;
+                padding: 0 20px;
+                animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.5s both;
+            }
+
+            /* 功能卡片點擊效果 */
+            #welcome-screen .feature {
+                cursor: pointer;
+            }
+
+            /* 防止iOS Safari底部安全區域遮擋 */
+            @supports (padding: max(0px)) {
+                #control-panel {
+                    padding-bottom: max(20px, env(safe-area-inset-bottom));
+                }
+
+                #camera-btn {
+                    bottom: max(120px, calc(env(safe-area-inset-bottom) + 100px));
+                }
+
+                #photo-preview {
+                    padding-bottom: max(20px, env(safe-area-inset-bottom));
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+        <!-- 導覽歡迎界面 -->
+        <div id="welcome-screen">
+            <div class="content-wrapper">
+                <h1>AR 互動體驗</h1>
+                <p class="subtitle">探索擴增實境的無限可能，捕捉每一個精彩瞬間</p>
+                
+                <div class="features">
+                    <div class="feature" data-feature="immersive" onclick="showDetail('immersive')">
+                        <span class="feature-icon">✨</span>
+                        <h3>沉浸式體驗</h3>
+                        <p>真實的3D互動體驗</p>
+                    </div>
+                    <div class="feature" data-feature="simple" onclick="showDetail('simple')">
+                        <span class="feature-icon">📱</span>
+                        <h3>簡單易用</h3>
+                        <p>直觀的操作介面</p>
+                    </div>
+                    <div class="feature" data-feature="photo" onclick="showDetail('photo')">
+                        <span class="feature-icon">📸</span>
+                        <h3>精美拍照</h3>
+                        <p>捕捉精彩瞬間</p>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="startAR()">
+                    <span>開始體驗</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 控制面板 -->
+        <div id="control-panel">
+            <button class="panel-btn" id="camera-toggle" onclick="toggleCamera()">
+                <span>📸</span>
+                <span>拍照</span>
+            </button>
+        </div>
+
+        <!-- 拍照按鈕 -->
+        <div id="camera-btn" onclick="takePhoto()"></div>
+
+        <!-- 拍照倒計時 -->
+        <div id="camera-countdown"></div>
+
+        <!-- 拍照閃光效果 -->
+        <div id="camera-flash"></div>
+
+        <!-- 拍照預覽 -->
+        <div id="photo-preview">
+            <div class="preview-container">
+                <img id="captured-photo" src="" alt="拍攝的照片">
+                <div class="preview-controls">
+                    <button class="preview-btn save" onclick="savePhoto()">
+                        <span>儲存照片</span>
+                    </button>
+                    <button class="preview-btn close" onclick="closePreview()">
+                        <span>關閉</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 保存提示 -->
+        <div id="save-toast">
+            <span>✓</span>
+            <span>照片已儲存</span>
+        </div>
+
+        <!-- 詳情頁 -->
+        <div id="detail-view">
+            <div class="back-button" onclick="hideDetail()"></div>
+            <div class="detail-content">
+                <img id="detail-image" class="detail-image" src="" alt="功能預覽">
+                <h2 id="detail-title" class="detail-title"></h2>
+                <p id="detail-text" class="detail-text"></p>
+            </div>
+        </div>
+
+        <!-- AR 場景 -->
+        <a-scene
+            vr-mode-ui="enabled: false;"
+            loading-screen="enabled: false;"
+            renderer="logarithmicDepthBuffer: true; preserveDrawingBuffer: true;"
+            arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+            id="scene"
+            embedded
+            gesture-detector
+        >
+            <a-assets>
+                <a-asset-item
+                    id="animated-asset"
+                    src="assets/asset.glb"
+                ></a-asset-item>
+                <!-- 預聲明隨機圖片資產 -->
+                <img id="random-img-1" src="https://via.placeholder.com/512/FF6B6B/FFFFFF?text=Image+1" crossorigin="anonymous">
+                <img id="random-img-2" src="https://via.placeholder.com/512/4ECDC4/FFFFFF?text=Image+2" crossorigin="anonymous">
+                <img id="random-img-3" src="https://via.placeholder.com/512/45B7D1/FFFFFF?text=Image+3" crossorigin="anonymous">
+                <img id="random-img-4" src="https://via.placeholder.com/512/FFA07A/FFFFFF?text=Image+4" crossorigin="anonymous">
+                <img id="random-img-5" src="https://via.placeholder.com/512/98D8C8/FFFFFF?text=Image+5" crossorigin="anonymous">
+            </a-assets>
+
+            <a-marker
+                id="animated-marker"
+                type="pattern"
+                preset="custom"
+                url="assets/marker.patt"
+                raycaster="objects: .clickable"
+                emitevents="true"
+                cursor="fuse: false; rayOrigin: mouse;"
+            >
+                <a-entity
+                    id="bowser-model"
+                    scale="0.07102171845054175 0.07102171845054175 0.07102171845054175"
+                    animation-mixer="loop: repeat"
+                    gltf-model="#animated-asset"
+                    class="clickable"
+                    gesture-handler
+                ></a-entity>
+                <!-- 隨機圖片實體 -->
+                <a-image
+                    id="random-image"
+                    src="#random-img-1"
+                    width="1"
+                    height="1"
+                    position="0 1.5 0"
+                    visible="false"
+                    class="gesture-handler"
+                ></a-image>
+            </a-marker>
+
+            <a-entity camera></a-entity>
+        </a-scene>
+
+        <script>
+            let cameraMode = false;
+            let capturedPhoto = null;
+            let isCapturing = false;
+
+            // 詳情頁資料結構
+            const infoData = {
+                immersive: {
+                    title: "沉浸式體驗",
+                    image: "https://via.placeholder.com/400x300/FF6B6B/FFFFFF?text=沉浸式體驗",
+                    content: "透過先進的 AR 技術，將虛擬世界與現實環境完美融合。體驗真實的 3D 互動，感受前所未有的沉浸式視覺饗宴。無論是探索虛擬場景還是與 3D 模型互動，都能帶來身臨其境的感受。"
+                },
+                simple: {
+                    title: "簡單易用",
+                    image: "https://via.placeholder.com/400x300/4ECDC4/FFFFFF?text=簡單易用",
+                    content: "直觀的操作介面設計，讓任何人都能輕鬆上手。無需複雜的設定或學習曲線，只需打開應用程式，對準標記，即可立即開始您的 AR 體驗之旅。簡潔而強大的功能，讓科技變得觸手可及。"
+                },
+                photo: {
+                    title: "精美拍照",
+                    image: "https://via.placeholder.com/400x300/45B7D1/FFFFFF?text=精美拍照",
+                    content: "捕捉每一個精彩瞬間，將 AR 體驗永久保存。高品質的截圖功能，完美融合相機環境與虛擬物件，創造出令人驚艷的合成照片。與朋友分享您的 AR 創作，記錄美好的互動回憶。"
+                }
+            };
+
+            // 隨機圖片資產陣列
+            const randomImageAssets = [
+                '#random-img-1',
+                '#random-img-2',
+                '#random-img-3',
+                '#random-img-4',
+                '#random-img-5'
+            ];
+
+            // 確保AR場景在頁面加載時初始化
+            window.addEventListener('DOMContentLoaded', () => {
+                const scene = document.getElementById('scene');
+                if (scene) {
+                    // AR場景已經在DOM中，AR.js會自動初始化
+                    // 但我們需要確保場景可以正常運行，即使被隱藏
+                    console.log('AR場景已準備就緒');
+                    
+                    // 設置隨機圖片觸發機制
+                    setupRandomImageTrigger();
+                    
+                    // 在歡迎界面停留時，限制 AR 渲染幀率以節省電力
+                    optimizeARPerformance();
+                }
+            });
+
+            // 優化 AR 性能：在歡迎界面時限制渲染
+            function optimizeARPerformance() {
+                const scene = document.getElementById('scene');
+                const welcomeScreen = document.getElementById('welcome-screen');
+                
+                if (!scene || !welcomeScreen) return;
+                
+                // 使用 MutationObserver 監聽歡迎界面的顯示狀態
+                const observer = new MutationObserver(() => {
+                    if (welcomeScreen.style.display === 'none' || welcomeScreen.classList.contains('hidden')) {
+                        // 歡迎界面隱藏時，恢復正常渲染
+                        if (scene.is('paused')) {
+                            scene.play();
+                        }
+                    } else {
+                        // 歡迎界面顯示時，暫停 AR 渲染以節省電力
+                        if (!scene.is('paused')) {
+                            scene.pause();
+                        }
+                    }
+                });
+                
+                // 觀察歡迎界面的樣式變化
+                observer.observe(welcomeScreen, {
+                    attributes: true,
+                    attributeFilter: ['style', 'class']
+                });
+                
+                // 初始狀態：如果歡迎界面顯示，則暫停場景
+                if (welcomeScreen.style.display !== 'none' && !welcomeScreen.classList.contains('hidden')) {
+                    scene.pause();
+                }
+            }
+
+            // 設置隨機圖片觸發機制
+            function setupRandomImageTrigger() {
+                const marker = document.getElementById('animated-marker');
+                const randomImage = document.getElementById('random-image');
+                
+                if (!marker || !randomImage) return;
+                
+                // 監聽 markerFound 事件
+                marker.addEventListener('markerFound', () => {
+                    // 從預定義的圖片資產陣列中隨機選取一個
+                    const randomIndex = Math.floor(Math.random() * randomImageAssets.length);
+                    const selectedImageId = randomImageAssets[randomIndex];
+                    
+                    // 動態更新 a-image 實體的 src 屬性
+                    randomImage.setAttribute('src', selectedImageId);
+                    randomImage.setAttribute('visible', 'true');
+                    
+                    console.log('隨機圖片已更新:', selectedImageId);
+                });
+                
+                // 可選：當標記丟失時隱藏圖片
+                marker.addEventListener('markerLost', () => {
+                    randomImage.setAttribute('visible', 'false');
+                });
+            }
+
+            // 顯示詳情頁
+            function showDetail(featureKey) {
+                const detailView = document.getElementById('detail-view');
+                const welcomeScreen = document.getElementById('welcome-screen');
+                const data = infoData[featureKey];
+                
+                if (!data || !detailView) return;
+                
+                // 更新詳情頁內容
+                document.getElementById('detail-title').textContent = data.title;
+                document.getElementById('detail-image').src = data.image;
+                document.getElementById('detail-text').textContent = data.content;
+                
+                // 隱藏歡迎頁，顯示詳情頁
+                welcomeScreen.style.display = 'none';
+                detailView.classList.add('active');
+            }
+
+            // 隱藏詳情頁
+            function hideDetail() {
+                const detailView = document.getElementById('detail-view');
+                const welcomeScreen = document.getElementById('welcome-screen');
+                
+                detailView.classList.remove('active');
+                
+                // 延遲後顯示歡迎頁，確保動畫流暢
+                setTimeout(() => {
+                    detailView.style.display = 'none';
+                    welcomeScreen.style.display = 'flex';
+                }, 600);
+            }
+
+            // 開始AR體驗
+            function startAR() {
+                const welcomeScreen = document.getElementById('welcome-screen');
+                const controlPanel = document.getElementById('control-panel');
+                const scene = document.getElementById('scene');
+                
+                // 恢復 AR 渲染（如果之前被暫停）
+                if (scene && scene.is('paused')) {
+                    scene.play();
+                }
+                
+                // 添加淡出動畫
+                welcomeScreen.classList.add('hidden');
+                
+                // 延遲隱藏歡迎界面並顯示控制面板
+                setTimeout(() => {
+                    welcomeScreen.style.display = 'none';
+                    
+                    // 短暫延遲後顯示控制面板，創造層次感
+                    setTimeout(() => {
+                        controlPanel.classList.add('active');
+                    }, 300);
+                }, 800);
+            }
+
+            // 切換拍照模式
+            function toggleCamera() {
+                cameraMode = !cameraMode;
+                const cameraBtn = document.getElementById('camera-btn');
+                const toggleBtn = document.getElementById('camera-toggle');
+                
+                if (cameraMode) {
+                    cameraBtn.classList.add('active');
+                    toggleBtn.classList.add('active');
+                } else {
+                    cameraBtn.classList.remove('active');
+                    toggleBtn.classList.remove('active');
+                }
+            }
+
+            // 拍照功能（帶倒計時和閃光效果）
+            async function takePhoto() {
+                if (isCapturing) return;
+                
+                isCapturing = true;
+                const cameraBtn = document.getElementById('camera-btn');
+                const countdown = document.getElementById('camera-countdown');
+                const flash = document.getElementById('camera-flash');
+                
+                // 禁用拍照按鈕
+                cameraBtn.style.pointerEvents = 'none';
+                cameraBtn.style.opacity = '0.5';
+                
+                // 倒計時動畫
+                const countdownNumbers = [3, 2, 1];
+                for (let i = 0; i < countdownNumbers.length; i++) {
+                    countdown.textContent = countdownNumbers[i];
+                    countdown.classList.add('active');
+                    
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    countdown.classList.remove('active');
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                // 閃光效果
+                flash.classList.add('active');
+                setTimeout(() => {
+                    flash.classList.remove('active');
+                }, 300);
+                
+                // 捕獲畫面
+                setTimeout(() => {
+                    capturePhoto();
+                }, 100);
+            }
+
+            // 捕獲照片（多層畫布合成邏輯）
+            function capturePhoto() {
+                const scene = document.getElementById('scene');
+                const canvas = scene.canvas;
+                
+                if (!canvas) {
+                    console.error('無法找到canvas');
+                    isCapturing = false;
+                    resetCameraButton();
+                    return;
+                }
+                
+                // 獲取相機視頻元素（AR背景）
+                const video = document.querySelector('video');
+                
+                // 創建合成 Canvas
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const ctx = tempCanvas.getContext('2d');
+                
+                // 設置高質量渲染
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                
+                try {
+                    // Step 1: 繪製相機視頻（AR背景）到 canvas
+                    if (video && video.readyState >= 2) {
+                        ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+                    } else {
+                        // 如果視頻未就緒，使用黑色背景
+                        ctx.fillStyle = '#000000';
+                        ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                    }
+                    
+                    // Step 2: 將 A-Frame 的 canvas（3D物件）疊加繪入
+                    ctx.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
+                    
+                    // Step 3: 輸出處理 - 使用 canvas.toBlob() 生成 PNG
+                    tempCanvas.toBlob((blob) => {
+                        if (blob) {
+                            const url = URL.createObjectURL(blob);
+                            capturedPhoto = url;
+                            
+                            // 顯示預覽（帶動畫）
+                            showPreview(url);
+                        } else {
+                            console.error('無法創建圖片blob');
+                        }
+                        
+                        isCapturing = false;
+                        resetCameraButton();
+                    }, 'image/png', 1.0);
+                } catch (error) {
+                    console.error('拍照失敗:', error);
+                    isCapturing = false;
+                    resetCameraButton();
+                }
+            }
+
+            // 重置拍照按鈕
+            function resetCameraButton() {
+                const cameraBtn = document.getElementById('camera-btn');
+                cameraBtn.style.pointerEvents = '';
+                cameraBtn.style.opacity = '1';
+            }
+
+            // 顯示預覽
+            function showPreview(imageUrl) {
+                const preview = document.getElementById('photo-preview');
+                const img = document.getElementById('captured-photo');
+                
+                // 預加載圖片
+                img.onload = () => {
+                    preview.classList.add('active');
+                };
+                
+                img.src = imageUrl;
+            }
+
+            // 儲存照片
+            function savePhoto() {
+                if (!capturedPhoto) return;
+                
+                const link = document.createElement('a');
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                link.download = `AR_Photo_${timestamp}.png`;
+                link.href = capturedPhoto;
+                
+                // 觸發下載
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // 顯示保存提示
+                showSaveToast();
+                
+                // 延遲關閉預覽，讓用戶看到提示
+                setTimeout(() => {
+                    closePreview();
+                }, 1500);
+            }
+
+            // 顯示保存提示
+            function showSaveToast() {
+                const toast = document.getElementById('save-toast');
+                toast.classList.add('active');
+                
+                setTimeout(() => {
+                    toast.classList.remove('active');
+                }, 2000);
+            }
+
+            // 關閉預覽
+            function closePreview() {
+                const preview = document.getElementById('photo-preview');
+                preview.classList.remove('active');
+                
+                // 清理資源
+                if (capturedPhoto) {
+                    URL.revokeObjectURL(capturedPhoto);
+                    capturedPhoto = null;
+                }
+            }
+
+            // 防止雙擊縮放
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', (e) => {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    e.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+
+            // 優化性能：減少不必要的重繪
+            let rafId = null;
+            function optimizePerformance() {
+                if (rafId) {
+                    cancelAnimationFrame(rafId);
+                }
+                // 這裡可以添加性能優化邏輯
+            }
+
+            // 頁面可見性變化時優化性能
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    optimizePerformance();
+                }
+            });
+        </script>
+    </body>
+</html>
