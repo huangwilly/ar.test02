@@ -931,13 +931,12 @@
                 '#random-img-5'
             ];
 
-            // 確保AR場景在頁面加載時不啟動相機
+            // 確保AR場景在頁面加載時不啟動相機（僅建立場景，不開啟相機）
             window.addEventListener('DOMContentLoaded', () => {
                 const scene = document.getElementById('scene');
                 if (scene) {
                     // 初始時場景完全隱藏，不啟動相機
                     scene.style.display = 'none';
-                    scene.pause();
                     console.log('AR場景已準備，等待用戶啟動');
                     
                     // 設置隨機圖片觸發機制
@@ -989,30 +988,12 @@
                 detailView.classList.add('active');
             }
 
-            // 隱藏詳情頁
+            // 隱藏詳情頁（總是回到歡迎頁，不碰 AR 狀態）
             function hideDetail() {
                 const detailView = document.getElementById('detail-view');
                 const welcomeScreen = document.getElementById('welcome-screen');
-                const scene = document.getElementById('scene');
                 
                 detailView.classList.remove('active');
-                
-                // 確保AR場景保持隱藏和暫停狀態（不啟動相機）
-                if (scene) {
-                    // 隱藏場景
-                    scene.style.display = 'none';
-                    scene.classList.remove('active');
-                    
-                    // 暫停場景渲染
-                    if (!scene.is('paused')) {
-                        scene.pause();
-                    }
-                    
-                    // 確保沒有arjs屬性（不啟動相機）
-                    if (scene.hasAttribute('arjs')) {
-                        scene.removeAttribute('arjs');
-                    }
-                }
                 
                 // 延遲後顯示歡迎頁，確保動畫流暢
                 setTimeout(() => {
@@ -1038,20 +1019,14 @@
                     
                     // 啟動AR場景和相機
                     if (scene) {
-                        // 顯示場景
+                        // 顯示場景（第二次之後只需顯示即可）
                         scene.style.display = 'block';
                         scene.classList.add('active');
-                        
-                        // 動態添加arjs屬性來啟動相機
-                        scene.setAttribute('arjs', 'trackingMethod: best; sourceType: webcam; debugUIEnabled: false;');
-                        
-                        // 等待AR.js初始化後再恢復場景
-                        setTimeout(() => {
-                            // 恢復場景渲染
-                            if (scene.is('paused')) {
-                                scene.play();
-                            }
-                        }, 200);
+
+                        // 第一次啟動時才設定 arjs，之後不要重複移除/新增
+                        if (!scene.hasAttribute('arjs')) {
+                            scene.setAttribute('arjs', 'trackingMethod: best; sourceType: webcam; debugUIEnabled: false;');
+                        }
                     }
                     
                     // 短暫延遲後顯示控制面板，創造層次感
@@ -1082,19 +1057,11 @@
                 if (controlPanel) controlPanel.classList.remove('active');
                 if (arBackButton) arBackButton.classList.remove('active');
 
-                // 停止AR場景和相機
+                // 僅隱藏 AR 場景，不銷毀或重新初始化相機
                 if (scene) {
-                    // 移除arjs屬性來停止相機
-                    scene.removeAttribute('arjs');
-                    
                     // 隱藏場景
                     scene.style.display = 'none';
                     scene.classList.remove('active');
-                    
-                    // 暫停場景渲染
-                    if (!scene.is('paused')) {
-                        scene.pause();
-                    }
                 }
 
                 // 顯示主歡迎頁
