@@ -509,6 +509,46 @@
                 z-index: 1;
             }
 
+            /* AR 體驗返回主歡迎頁按鈕 */
+            #ar-back-button {
+                position: fixed;
+                top: max(env(safe-area-inset-top), 20px);
+                right: 20px;
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.15);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                backdrop-filter: blur(20px) saturate(180%);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                z-index: 150;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+            }
+
+            #ar-back-button::before {
+                content: '⌂';
+                font-size: 1.4rem;
+                color: white;
+            }
+
+            #ar-back-button.active {
+                display: flex;
+            }
+
+            #ar-back-button:hover {
+                background: rgba(255, 255, 255, 0.25);
+                transform: scale(1.05);
+            }
+
+            #ar-back-button:active {
+                transform: scale(0.95);
+            }
+
             /* 保存成功提示 */
             #save-toast {
                 position: fixed;
@@ -751,6 +791,7 @@
         </div>
 
         <!-- 控制面板 -->
+        <div id="ar-back-button" onclick="backToHomeFromAR()"></div>
         <div id="control-panel">
             <button class="panel-btn" id="camera-toggle" onclick="toggleCamera()">
                 <span>📸</span>
@@ -999,6 +1040,7 @@
                 const welcomeScreen = document.getElementById('welcome-screen');
                 const controlPanel = document.getElementById('control-panel');
                 const scene = document.getElementById('scene');
+                const arBackButton = document.getElementById('ar-back-button');
                 
                 // 恢復 AR 渲染（如果之前被暫停）
                 if (scene && scene.is('paused')) {
@@ -1015,8 +1057,41 @@
                     // 短暫延遲後顯示控制面板，創造層次感
                     setTimeout(() => {
                         controlPanel.classList.add('active');
+                        if (arBackButton) {
+                            arBackButton.classList.add('active');
+                        }
                     }, 300);
                 }, 800);
+            }
+
+            // 從 AR 體驗返回主歡迎頁
+            function backToHomeFromAR() {
+                const welcomeScreen = document.getElementById('welcome-screen');
+                const controlPanel = document.getElementById('control-panel');
+                const arBackButton = document.getElementById('ar-back-button');
+                const cameraBtn = document.getElementById('camera-btn');
+                const toggleBtn = document.getElementById('camera-toggle');
+                const scene = document.getElementById('scene');
+
+                // 關閉拍照模式 UI
+                cameraMode = false;
+                if (cameraBtn) cameraBtn.classList.remove('active');
+                if (toggleBtn) toggleBtn.classList.remove('active');
+
+                // 隱藏 AR 控制相關 UI
+                if (controlPanel) controlPanel.classList.remove('active');
+                if (arBackButton) arBackButton.classList.remove('active');
+
+                // 顯示主歡迎頁
+                if (welcomeScreen) {
+                    welcomeScreen.classList.remove('hidden');
+                    welcomeScreen.style.display = 'flex';
+                }
+
+                // 交由性能優化邏輯暫停 AR 渲染（當歡迎頁顯示時）
+                if (scene && !scene.is('paused')) {
+                    scene.pause();
+                }
             }
 
             // 切換拍照模式
